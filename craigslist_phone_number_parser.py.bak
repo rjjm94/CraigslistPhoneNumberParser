@@ -1,0 +1,39 @@
+import pymongo
+from pnmatcher import PhoneNumberMatcher
+matcher = PhoneNumberMatcher()
+from bs4 import BeautifulSoup
+
+client = pymongo.MongoClient('reports.tiretracked.com', 27017)
+
+db = client.get_database('cl_scraper')
+
+collection = db.get_collection('blacklist')
+
+print('Count of blacklisted records {}'.format(collection.estimated_document_count()))
+print('Count of scraped records {}'.format(db.get_collection('scraped').estimated_document_count()))
+
+csv_file = open('parsed_bodies_4.csv', 'w')
+records = collection.find({'reason': 'no_phone_number'})
+
+mylist = 0
+
+
+for record in records:
+    html = record['ad_html']
+    parsed_html = BeautifulSoup(html, feature="html.parser")
+    parsed_html2 = parsed_html.body.find('section', attrs={'id': 'postingbody'}).text
+    parsed_html3 = parsed_html2.replace('\n', '').replace(',', '').replace('QR Code Link to This Post', '')
+    csv_file.write(parsed_html3 + '\n')
+    text_phone_numbers = matcher.match(parsed_html3, source_type='string')
+    mylist = mylist + 1
+    print("Record: {} ".format(mylist) + text_phone_numbers)
+    # if mylist >= 1000
+    #     exit()
+    csv_file.close()
+
+# if parsed_html
+# f = open('list.csv', 'w')
+# f.write('Text\n')
+# for parsed_htmls in parsed_html
+#     f.write(parsed_html)
+#     f.close()
